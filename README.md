@@ -9,6 +9,7 @@ To run this project, simply run the script `project_run.r`.
 
 - `> data`- Folder to store data pulled through APIs 
 - `> outputs` - Folder to store outputs generated through the script
+- `> shapefiles` - Folder containing Belize shapefiles
 - `data_analysis.r` - Script to analyze data after it is downloaded; run automatically in `project_run.r`
 - `data_download.r` - Script to download data; run automatically in `project_run.r`
 - `LICENSE.txt` - Creative commons license for the project

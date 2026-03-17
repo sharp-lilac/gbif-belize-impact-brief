@@ -93,3 +93,31 @@ if (!file.exists(journal_metrics_path)) {
     message("Loading cached journal metrics from file...")
     journal_metrics <- readRDS(journal_metrics_path)
 }
+
+## Fetch GBIF occurrence density grid for Belize ------------------------
+occ_grid_path <- "data/belize_occ_grid.rds"
+if (!file.exists(occ_grid_path)) {
+    message("Fetching occurrence counts from GBIF API (~400 cells, ~3-5 min)...")
+    grid_size <- 0.1
+    lons <- seq(-89.3, -87.4, by = grid_size)
+    lats <- seq(15.8, 18.5, by = grid_size)
+    grid <- expand.grid(lon = lons, lat = lats)
+    grid$count <- purrr::map2_int(grid$lon, grid$lat, function(lon, lat) {
+        wkt <- sprintf(
+            "POLYGON((%f %f,%f %f,%f %f,%f %f,%f %f))",
+            lon, lat, lon + grid_size, lat, lon + grid_size, lat + grid_size,
+            lon, lat + grid_size, lon, lat
+        )
+        Sys.sleep(1.5)
+        tryCatch(
+            rgbif::occ_count(geometry = wkt, hasCoordinate = TRUE),
+            error = function(e) 0L
+        )
+    }, .progress = TRUE)
+    occ_grid <- grid |> filter(count > 0)
+    saveRDS(occ_grid, occ_grid_path)
+    message("Saved to ", occ_grid_path)
+} else {
+    message("Loading cached occurrence grid from file...")
+    occ_grid <- readRDS(occ_grid_path)
+}
