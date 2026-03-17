@@ -18,6 +18,28 @@ write_csv(
     "outputs/summary_stats.csv"
 )
 
+## Calculate unique species per taxon ------------------------
+taxa <- c(
+    birds = 212, plants = 6, fungi = 5,
+    animalia = 1, insects = 216,
+    mammals = 359, reptiles = 358,
+    molluscs = 52, amphibians = 131
+)
+species_counts <- sapply(taxa, function(key) {
+    res <- occ_search(
+        taxonKey = key,
+        country = "BZ",
+        limit = 0,
+        facet = "speciesKey",
+        facetLimit = 100000
+    )
+    nrow(res$facets$speciesKey)
+})
+write_csv(
+    cbind(group = rownames(as.data.frame(species_counts)), as.data.frame(species_counts)),
+    "outputs/species_counts.csv"
+)
+
 ## Visualize publications ------------------------
 publications_by_year <- df_records |>
     filter(!is.na(year)) |>
