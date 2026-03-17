@@ -119,6 +119,27 @@ occ_grid_sf <- occ_grid |>
     st_as_sf(crs = 4326)
 occ_grid_clipped <- st_filter(occ_grid_sf, st_make_valid(belize_map))
 
+## Visualize non-bird species occurrence density ------------------------
+occ_grid_nonbird <- occ_grid |>
+    left_join(occ_grid_birds |> rename(count_birds = count), by = c("lon", "lat")) |>
+    mutate(
+        count_birds = replace_na(count_birds, 0L),
+        count = count - count_birds
+    ) |>
+    filter(count > 0)
+
+occ_grid_nonbird_sf <- occ_grid_nonbird |>
+    mutate(geometry = purrr::pmap(list(lon, lat), function(x, y) {
+        st_polygon(list(rbind(
+            c(x, y), c(x + grid_size, y), c(x + grid_size, y + grid_size),
+            c(x, y + grid_size), c(x, y)
+        )))
+    })) |>
+    st_as_sf(crs = 4326)
+occ_grid_nonbird_clipped <- st_filter(occ_grid_nonbird_sf, st_make_valid(belize_map))
+
+shared_count_limits <- c(1, max(occ_grid_clipped$count, occ_grid_nonbird_clipped$count))
+
 plot_occ_density <- ggplot() +
     geom_sf(data = occ_grid_clipped, aes(fill = count), color = NA) +
     geom_sf(data = belize_map, linewidth = 1, color = "black", fill = NA) +
@@ -126,12 +147,38 @@ plot_occ_density <- ggplot() +
         colours = palette_cont,
         name = "Occurrence Density",
         trans = "log10",
+        limits = shared_count_limits,
         breaks = scales::log_breaks(n = 6),
         labels = scales::comma
     ) +
     geom_sf(data = protected_map, linewidth = 0.25, color = "black", fill = "grey", alpha = 0.3) +
     annotation_scale(location = "br", width_hint = 0.2, style = "ticks") +
     annotation_north_arrow(location = "tl", which_north = "true", style = north_arrow_fancy_orienteering) +
+    labs(title = "All taxa") +
     theme_minimal() +
     custom_theme
 ggsave("outputs/occurrence_density_map.png", plot_occ_density, width = 10, height = 14, dpi = 300)
+
+plot_occ_density_nonbird <- ggplot() +
+    geom_sf(data = occ_grid_nonbird_clipped, aes(fill = count), color = NA) +
+    geom_sf(data = belize_map, linewidth = 1, color = "black", fill = NA) +
+    scale_fill_gradientn(
+        colours = palette_cont,
+        name = "Occurrence Density",
+        trans = "log10",
+        limits = shared_count_limits,
+        breaks = scales::log_breaks(n = 6),
+        labels = scales::comma
+    ) +
+    geom_sf(data = protected_map, linewidth = 0.25, color = "black", fill = "grey", alpha = 0.3) +
+    annotation_scale(location = "br", width_hint = 0.2, style = "ticks") +
+    annotation_north_arrow(location = "tl", which_north = "true", style = north_arrow_fancy_orienteering) +
+    labs(title = "Non-bird taxa") +
+    theme_minimal() +
+    custom_theme
+ggsave("outputs/occurrence_density_map_nonbird.png", plot_occ_density_nonbird, width = 10, height = 14, dpi = 300)
+
+plot_occ_density_combined <- (plot_occ_density | plot_occ_density_nonbird) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "right")
+ggsave("outputs/occurrence_density_map_combined.png", plot_occ_density_combined, width = 18, height = 14, dpi = 300)
