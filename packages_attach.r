@@ -2,7 +2,7 @@
 
 ## Check required packages ------------------------
 options(repos = c(CRAN = "https://cran.rstudio.com/"), pkgType = "binary")
-required_packages <- c("jsonlite", "rcrossref", "dplyr", "readr", "stringr", "openalexR", "purrr")
+required_packages <- c("jsonlite", "rcrossref", "dplyr", "readr", "stringr", "openalexR", "purrr", "ggplot2", "ggpubr")
 install_if_missing <- function(package) {
     if (!requireNamespace(package, quietly = TRUE)) {
         install.packages(package)
@@ -18,3 +18,5 @@ library(readr)
 library(stringr)
 library(openalexR)
 library(purrr)
+library(ggplot2)
+library(ggpubr)

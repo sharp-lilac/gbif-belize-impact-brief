@@ -15,6 +15,7 @@ To run this project, simply run the script `project_run.r`.
 - `packages_attach.r`- Script to install and attach project packages; run automatically in `project_run.r`
 - `project_run.r` - Script to run the project. **Key script!**
 - `README.md` - This file
+- `theme_define.r` - Script to define color palette and ggplot theme for visualizations
 
 
 ## Brief
