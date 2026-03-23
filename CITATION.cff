@@ -1,0 +1,30 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: gbif-belize-impact-brief
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Jessica C.
+    family-names: Boles
+    orcid: 'https://orcid.org/0000-0002-4371-7621'
+    affiliation: University of Belize Environmental Research Institute
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.19187145
+repository-code: 'https://github.com/sharp-lilac/gbif-belize-impact-brief'
+abstract: >-
+  This release holds the code to accompany the UB-ERI data
+  brief 'Belize's Contributions to Global Biodiversity
+  Data,' including data access, analysis, and visualization.
+keywords:
+  - GBIF
+  - data
+  - Belize
+  - biodiversity
+license: CC-BY-4.0
+version: v1.0.0
+date-released: '2026-03-23'

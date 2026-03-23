@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19187145.svg)](https://doi.org/10.5281/zenodo.19187145)
+
 # Analyses for the Belize GBIF Data Impact Brief
 
 This repository holds the code to accompany the UB-ERI data brief 'Belize’s Contributions to Global Biodiversity Data,' including data access, analysis, and visualization.
