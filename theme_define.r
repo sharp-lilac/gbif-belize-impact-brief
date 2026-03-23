@@ -1,4 +1,4 @@
-# theme.r
+# theme_define.r
 
 ## Define color palettes ------------------------
 palette <- c(
