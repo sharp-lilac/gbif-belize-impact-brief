@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19187145.svg)](https://doi.org/10.5281/zenodo.19187145)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19225250.svg)](https://doi.org/10.5281/zenodo.19225250)
 
 # Analyses for the Belize GBIF Data Impact Brief
 
