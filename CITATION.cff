@@ -14,7 +14,7 @@ authors:
     affiliation: University of Belize Environmental Research Institute
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.19187145
+    value: 10.5281/zenodo.19187144
 repository-code: 'https://github.com/sharp-lilac/gbif-belize-impact-brief'
 abstract: >-
   This release holds the code to accompany the UB-ERI data
