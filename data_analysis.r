@@ -100,6 +100,55 @@ publications_figure <- ggarrange(
     labels = "AUTO"
 )
 ggsave("outputs/publications_figure.png", publications_figure, width = 16, height = 12, dpi = 300)
+top_keywords <- tibble(keywords = records$keywords) |>
+    unnest_longer(keywords) |>
+    filter(!is.na(keywords), str_squish(keywords) != "") |>
+    mutate(keywords = str_to_sentence(str_squish(keywords))) |>
+    count(keywords, sort = TRUE) |>
+    slice_head(n = 15)
+plot_top_keywords <- ggplot(top_keywords, aes(x = reorder(keywords, n), y = n)) +
+    geom_col(fill = palette[1]) +
+    coord_flip() +
+    labs(x = NULL, y = "Publications") +
+    theme_pubclean() +
+    custom_theme
+top_countries <- tibble(country = records$countriesOfResearcher) |>
+    unnest_longer(country) |>
+    filter(!is.na(country)) |>
+    mutate(country_name = countrycode(country, origin = "iso2c", destination = "country.name")) |>
+    filter(!is.na(country_name)) |>
+    count(country_name, sort = TRUE) |>
+    slice_head(n = 10)
+plot_top_countries <- ggplot(top_countries, aes(x = reorder(country_name, n), y = n)) +
+    geom_col(fill = palette[2]) +
+    coord_flip() +
+    labs(x = NULL, y = "Publications") +
+    theme_pubclean() +
+    custom_theme
+central_america_caribbean <- c(
+    "MX", "BZ", "GT", "HN", "SV", "NI", "CR", "PA",
+    "CU", "JM", "HT", "DO", "TT", "BB", "BS", "GD",
+    "LC", "VC", "AG", "DM", "KN", "PR", "TC", "KY", "VG"
+)
+regional_global <- tibble(country_lists = records$countriesOfResearcher) |>
+    mutate(scope = ifelse(
+        sapply(country_lists, function(x) any(x %in% central_america_caribbean)),
+        "Regional", "Global"
+    )) |>
+    count(scope)
+plot_regional_global <- ggplot(regional_global, aes(x = scope, y = n, fill = scope)) +
+    geom_col() +
+    coord_flip() +
+    scale_fill_manual(values = c("Regional" = palette[3], "Global" = palette[4])) +
+    labs(x = NULL, y = "Publications") +
+    theme_pubclean() +
+    custom_theme +
+    theme(legend.position = "none")
+right_col <- plot_top_countries / plot_regional_global + plot_layout(heights = c(3, 1))
+literature_figure <- (plot_top_keywords | right_col) +
+    plot_annotation(tag_levels = "A") &
+    theme(plot.tag = element_text(size = 22, face = "bold"))
+ggsave("outputs/literature_figure.png", literature_figure, width = 16, height = 12, dpi = 300)
 
 # Load Shapefiles ---------------------------
 belize_map <- st_read("shapefiles/Belize_Basemap.shp") %>%
