@@ -2,7 +2,7 @@
 
 ## Check required packages ------------------------
 options(repos = c(CRAN = "https://cran.rstudio.com/"), pkgType = "binary")
-required_packages <- c("jsonlite", "rcrossref", "tidyverse", "readr", "stringr", "openalexR", "purrr", "ggplot2", "ggpubr", "rgbif", "sf", "ggspatial", "scales", "patchwork")
+required_packages <- c("jsonlite", "rcrossref", "tidyverse", "readr", "stringr", "openalexR", "purrr", "ggplot2", "ggpubr", "rgbif", "sf", "ggspatial", "scales", "patchwork", "packcircles")
 install_if_missing <- function(package) {
     if (!requireNamespace(package, quietly = TRUE)) {
         install.packages(package)
@@ -25,3 +25,4 @@ library(sf)
 library(ggspatial)
 library(scales)
 library(patchwork)
+library(packcircles)

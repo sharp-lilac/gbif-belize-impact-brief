@@ -149,3 +149,24 @@ if (!file.exists(occ_grid_birds_path)) {
     message("Loading cached bird occurrence grid from file...")
     occ_grid_birds <- readRDS(occ_grid_birds_path)
 }
+
+## Fetch per-taxon observation counts for Belize ------------------------
+taxa_obs_keys <- c(
+    birds = 212, plants = 6, fungi = 5, insects = 216,
+    mammals = 359, molluscs = 52, amphibians = 131, arachnids = 367
+)
+taxa_obs_counts_path <- "data/taxa_obs_counts.rds"
+if (!file.exists(taxa_obs_counts_path)) {
+    message("Fetching per-taxon observation counts from GBIF API...")
+    taxa_obs_counts <- purrr::map_int(taxa_obs_keys, function(key) {
+        tryCatch(
+            rgbif::occ_count(country = "BZ", taxonKey = key),
+            error = function(e) NA_integer_
+        )
+    })
+    saveRDS(taxa_obs_counts, taxa_obs_counts_path)
+    message("Saved to ", taxa_obs_counts_path)
+} else {
+    message("Loading cached taxon observation counts...")
+    taxa_obs_counts <- readRDS(taxa_obs_counts_path)
+}

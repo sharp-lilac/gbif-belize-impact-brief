@@ -23,7 +23,7 @@ taxa <- c(
     birds = 212, plants = 6, fungi = 5,
     animalia = 1, insects = 216,
     mammals = 359, reptiles = 358,
-    molluscs = 52, amphibians = 131
+    molluscs = 52, amphibians = 131, arachnids = 367
 )
 species_counts <- sapply(taxa, function(key) {
     res <- occ_search(
@@ -179,6 +179,120 @@ plot_occ_density_nonbird <- ggplot() +
 ggsave("outputs/occurrence_density_map_nonbird.png", plot_occ_density_nonbird, width = 10, height = 14, dpi = 300)
 
 plot_occ_density_combined <- (plot_occ_density | plot_occ_density_nonbird) +
+    plot_layout(guides = "collect") +
+    plot_annotation(tag_levels = "A") &
+    theme(legend.position = "right", plot.tag = element_text(size = 22, face = "bold"))
+ggsave("outputs/occurrence_density_map_combined.png", plot_occ_density_combined, width = 18, height = 14, dpi = 300)
+
+## Packed bubble chart: taxonomic groups by observation count ------------------------
+
+# Assemble bubble data (bony fish + reptiles hardcoded; animalia excluded as parent group)
+species_counts_df <- read_csv("outputs/species_counts.csv") |>
+    filter(group != "animalia") |>
+    mutate(species_counts = as.numeric(species_counts))
+
+bubble_data <- tibble(
+    group     = c(names(taxa_obs_counts), "bony_fish", "reptiles"),
+    obs_count = c(as.integer(taxa_obs_counts), 51401L, 11771L)
+) |>
+    left_join(species_counts_df, by = "group") |>
+    filter(!is.na(obs_count), obs_count > 0) |>
+    mutate(
+        display_name = dplyr::recode(group,
+            birds = "Birds", plants = "Plants", fungi = "Fungi",
+            insects = "Insects", mammals = "Mammals", reptiles = "Reptiles",
+            molluscs = "Molluscs", amphibians = "Amphibians",
+            bony_fish = "Bony fish", arachnids = "Arachnids"
+        ),
+        species_counts = replace_na(species_counts, 0),
+        border_type = ifelse(group %in% c("bony_fish", "reptiles"), "dashed", "solid"),
+        fill_color = dplyr::recode(group,
+            birds = palette[1], plants = palette[3], fungi = palette[8],
+            insects = palette[6], mammals = palette[2], reptiles = palette[7],
+            molluscs = palette[9], amphibians = palette[4], bony_fish = palette[5],
+            arachnids = palette[10]
+        )
+    ) |>
+    arrange(desc(obs_count))
+
+# Helper: compute circle packing layout and polygon vertices
+build_bubble_polygons <- function(df, n_vertices = 100) {
+    layout <- packcircles::circleProgressiveLayout(df$obs_count, sizetype = "area")
+    polys <- packcircles::circleLayoutVertices(layout, npoints = n_vertices, sizetype = "radius")
+    polys <- left_join(polys, df |> mutate(id = row_number()), by = "id")
+    centroids <- as_tibble(layout) |>
+        mutate(id = row_number()) |>
+        left_join(df |> mutate(id = row_number()), by = "id") |>
+        mutate(label = paste0(display_name, "\n", scales::comma(obs_count)))
+    list(polys = polys, centroids = centroids)
+}
+
+bubble_all <- build_bubble_polygons(bubble_data)
+bubble_nobird <- build_bubble_polygons(bubble_data |> filter(group != "birds"))
+
+# Shared scales and theme
+bubble_fill_scale <- scale_fill_manual(
+    name   = "Taxon",
+    values = setNames(bubble_data$fill_color, bubble_data$group),
+    labels = setNames(bubble_data$display_name, bubble_data$group),
+    drop   = FALSE
+)
+bubble_lw_scale <- scale_linewidth_continuous(
+    name   = "Species richness",
+    range  = c(0.5, 4),
+    labels = scales::comma,
+    breaks = c(100, 500, 1500, 3500, 6000)
+)
+bubble_linetype_scale <- scale_linetype_manual(
+    values = c(solid = "solid", dashed = "dashed"),
+    guide  = "none"
+)
+bubble_theme <- theme_void() + theme(
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 16, face = "bold"),
+    plot.title = element_text(
+        size = 22, face = "bold", hjust = 0,
+        margin = margin(b = 10)
+    ),
+    plot.margin = margin(10, 10, 10, 10)
+)
+
+make_bubble_panel <- function(bubble, title, label_size = 8, show_fill_legend = TRUE) {
+    # Power scaling compresses size range so smaller labeled bubbles stay readable;
+    # hide labels on bubbles too small to fit text
+    centroids_labeled <- bubble$centroids |>
+        mutate(txt_size = pmax(2.5, label_size * (radius / max(radius))^0.35)) |>
+        filter(radius > max(radius) * 0.20)
+
+    p <- ggplot() +
+        geom_polygon(
+            data = bubble$polys,
+            aes(
+                x = x, y = y, group = id, fill = group,
+                linewidth = species_counts, linetype = border_type
+            ),
+            color = "grey20"
+        ) +
+        geom_text(
+            data = centroids_labeled,
+            aes(x = x, y = y, label = label, size = txt_size),
+            lineheight = 0.9, fontface = "bold", color = "white"
+        ) +
+        bubble_fill_scale +
+        bubble_lw_scale +
+        bubble_linetype_scale +
+        scale_size_identity(guide = "none") +
+        coord_equal() +
+        labs(title = title) +
+        bubble_theme +
+        guides(linewidth = "none", fill = if (show_fill_legend) "legend" else "none")
+    p
+}
+
+plot_bubble_all <- make_bubble_panel(bubble_all, "A", show_fill_legend = TRUE)
+plot_bubble_nobird <- make_bubble_panel(bubble_nobird, "B", show_fill_legend = FALSE)
+
+bubble_combined <- (plot_bubble_all | plot_bubble_nobird) +
     plot_layout(guides = "collect") &
     theme(legend.position = "right")
-ggsave("outputs/occurrence_density_map_combined.png", plot_occ_density_combined, width = 18, height = 14, dpi = 300)
+ggsave("outputs/bubble_chart_taxa.png", bubble_combined, width = 18, height = 10, dpi = 300)
