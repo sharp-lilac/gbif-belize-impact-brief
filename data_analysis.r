@@ -100,10 +100,22 @@ publications_figure <- ggarrange(
     labels = "AUTO"
 )
 ggsave("outputs/publications_figure.png", publications_figure, width = 16, height = 12, dpi = 300)
+
+# Visualize Literature ---------------------------
 top_keywords <- tibble(keywords = records$keywords) |>
     unnest_longer(keywords) |>
     filter(!is.na(keywords), str_squish(keywords) != "") |>
     mutate(keywords = str_to_sentence(str_squish(keywords))) |>
+    filter(str_to_lower(keywords) != "gbif") |>
+    (\(df) {
+        all_lower <- str_to_lower(unique(df$keywords))
+        df |> mutate(keywords = ifelse(
+            !str_ends(str_to_lower(keywords), "s") &
+                paste0(str_to_lower(keywords), "s") %in% all_lower,
+            str_to_sentence(paste0(str_to_lower(keywords), "s")),
+            keywords
+        ))
+    })() |>
     count(keywords, sort = TRUE) |>
     slice_head(n = 15)
 plot_top_keywords <- ggplot(top_keywords, aes(x = reorder(keywords, n), y = n)) +
@@ -266,8 +278,8 @@ build_bubble_polygons <- function(df, n_vertices = 100) {
     polys <- left_join(polys, df |> mutate(id = row_number()), by = "id")
     centroids <- as_tibble(layout) |>
         mutate(id = row_number()) |>
-        left_join(df |> mutate(id = row_number()), by = "id") |>
-        list(polys = polys, centroids = centroids)
+        left_join(df |> mutate(id = row_number()), by = "id")
+    list(polys = polys, centroids = centroids)
 }
 bubble_all <- build_bubble_polygons(bubble_data)
 bubble_nobird <- build_bubble_polygons(bubble_data |> filter(group != "birds"))
