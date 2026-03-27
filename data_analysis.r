@@ -234,12 +234,9 @@ plot_occ_density_combined <- (plot_occ_density | plot_occ_density_nonbird) +
 ggsave("outputs/occurrence_density_map_combined.png", plot_occ_density_combined, width = 18, height = 14, dpi = 300)
 
 ## Packed bubble chart: taxonomic groups by observation count ------------------------
-
-# Assemble bubble data (bony fish + reptiles hardcoded; animalia excluded as parent group)
 species_counts_df <- read_csv("outputs/species_counts.csv") |>
     filter(group != "animalia") |>
     mutate(species_counts = as.numeric(species_counts))
-
 bubble_data <- tibble(
     group     = c(names(taxa_obs_counts), "bony_fish", "reptiles"),
     obs_count = c(as.integer(taxa_obs_counts), 51401L, 11771L)
@@ -263,8 +260,6 @@ bubble_data <- tibble(
         )
     ) |>
     arrange(desc(obs_count))
-
-# Helper: compute circle packing layout and polygon vertices
 build_bubble_polygons <- function(df, n_vertices = 100) {
     layout <- packcircles::circleProgressiveLayout(df$obs_count, sizetype = "area")
     polys <- packcircles::circleLayoutVertices(layout, npoints = n_vertices, sizetype = "radius")
@@ -272,14 +267,10 @@ build_bubble_polygons <- function(df, n_vertices = 100) {
     centroids <- as_tibble(layout) |>
         mutate(id = row_number()) |>
         left_join(df |> mutate(id = row_number()), by = "id") |>
-        mutate(label = paste0(display_name, "\n", scales::comma(obs_count)))
-    list(polys = polys, centroids = centroids)
+        list(polys = polys, centroids = centroids)
 }
-
 bubble_all <- build_bubble_polygons(bubble_data)
 bubble_nobird <- build_bubble_polygons(bubble_data |> filter(group != "birds"))
-
-# Shared scales and theme
 bubble_fill_scale <- scale_fill_manual(
     name   = "Taxon",
     values = setNames(bubble_data$fill_color, bubble_data$group),
@@ -305,14 +296,20 @@ bubble_theme <- theme_void() + theme(
     ),
     plot.margin = margin(10, 10, 10, 10)
 )
-
 make_bubble_panel <- function(bubble, title, label_size = 8, show_fill_legend = TRUE) {
-    # Power scaling compresses size range so smaller labeled bubbles stay readable;
-    # hide labels on bubbles too small to fit text
     centroids_labeled <- bubble$centroids |>
         mutate(txt_size = pmax(2.5, label_size * (radius / max(radius))^0.35)) |>
-        filter(radius > max(radius) * 0.20)
-
+        filter(radius > max(radius) * 0.20) |>
+        mutate(label = paste0(
+            display_name, "<br>", scales::comma(obs_count),
+            ifelse(species_counts > 0,
+                paste0(
+                    "<br><span style='font-size:", round(txt_size * 2.845 * 0.65, 1), "pt'><i>(",
+                    scales::comma(species_counts), ")</i></span>"
+                ),
+                ""
+            )
+        ))
     p <- ggplot() +
         geom_polygon(
             data = bubble$polys,
@@ -322,10 +319,11 @@ make_bubble_panel <- function(bubble, title, label_size = 8, show_fill_legend = 
             ),
             color = "grey20"
         ) +
-        geom_text(
+        ggtext::geom_richtext(
             data = centroids_labeled,
             aes(x = x, y = y, label = label, size = txt_size),
-            lineheight = 0.9, fontface = "bold", color = "white"
+            lineheight = 0.9, fontface = "bold", color = "white",
+            fill = NA, label.color = NA
         ) +
         bubble_fill_scale +
         bubble_lw_scale +
@@ -337,10 +335,8 @@ make_bubble_panel <- function(bubble, title, label_size = 8, show_fill_legend = 
         guides(linewidth = "none", fill = if (show_fill_legend) "legend" else "none")
     p
 }
-
 plot_bubble_all <- make_bubble_panel(bubble_all, "A", show_fill_legend = TRUE)
 plot_bubble_nobird <- make_bubble_panel(bubble_nobird, "B", show_fill_legend = FALSE)
-
 bubble_combined <- (plot_bubble_all | plot_bubble_nobird) +
     plot_layout(guides = "collect") &
     theme(legend.position = "right")
